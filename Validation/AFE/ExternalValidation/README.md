@@ -1,7 +1,9 @@
 AFE External Validation
 -----------------------
 
-This project is a sample AFE validator (route/release) that runs as a standalone executable, is passed an AFE Validation message in a temp file (ARG #1), and is expected to return a validation result in another temp file (ARG #2).
+This project is a sample AFE validator (route/release) that runs as a standalone executable.
+
+It is passed an [AFE validation message](http://cloudfront.energynavigator.com/afenav/]releases/8.1/schemas/afe-validate.xsd) ([AFE schema](http://cloudfront.energynavigator.com/afenav/releases/8.1/schemas/afe.xsd)) in a temp file (ARG #1 to the EXE), and is expected to return a [validation result](http://cloudfront.energynavigator.com/afenav/releases/8.1/schemas/afe-validate-result.xsd) in another temp file (ARG #2 to the EXE).
 
 This mechanism can be used for validating the AFE contents against an external system, or some complex logic, when the AFE is routed or released.
 

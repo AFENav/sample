@@ -1,0 +1,2 @@
+#Python examples
+Each Python script will include a version number at the top of the file.  You can run the python examples as you would any other python code, assuming you have the proper version installed on your machine.

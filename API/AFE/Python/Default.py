@@ -1,4 +1,4 @@
-# Created using Python 2.7.7
+# Created using Python 2.7.10
 from urllib2 import Request, urlopen, URLError, HTTPError
 from json import loads, dumps
 import datetime
@@ -7,8 +7,8 @@ import csv
 import sys
 
 # the base_url will be the url to your service machine
-# base_url = 'https://server:14101'
-base_url = 'https://e258-mdd:8082'
+base_url = 'https://server:14101'
+suppress_ssl_check = True
 
 
 def call_api(url, request_data):
@@ -18,7 +18,10 @@ def call_api(url, request_data):
     req_object.add_header('Content-Type', 'application/json')
     try:
         # 10 second time out may need to be adjusted for your environment
-        response = urlopen(req_object, timeout=10)
+        if suppress_ssl_check:
+            response = urlopen(req_object, timeout=10, context=ssl._create_unverified_context())
+        else:
+            response = urlopen(req_object, timeout=10)
         result = loads(response.read())
     except URLError, e:
         try:

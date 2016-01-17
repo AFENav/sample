@@ -21,9 +21,9 @@ def call_api(url, request_data):
     try:
         # 10 second time out may need to be adjusted for your environment
         if suppress_ssl_check:
-            response = urlopen(req_object, timeout=10, context=ssl._create_unverified_context())
+            response = urlopen(req_object, timeout=600, context=ssl._create_unverified_context())
         else:
-            response = urlopen(req_object, timeout=10)
+            response = urlopen(req_object, timeout=600)
         result = loads(response.read())
     except URLError, e:
         try:
@@ -42,10 +42,7 @@ def call_api(url, request_data):
 
 def main():
     """
-    This is an example of how to use the API to query documents in AFENav.
-    We are retrieving a list of all AFE's that have a description which contains a search term.
-    The results are then spit out to the console in a CSV format.
-    Then we open each AFE and modify the description and save the document.
+    This is an example of how to use the API to load field costs for one or more AFEs
     """
     auth_token = ''
 
@@ -103,13 +100,13 @@ def main():
           ]
           })
 
+        for message in result['Messages']:
+          print("%s\t\t - %s" % (message["MessageType"], message["Message"]))
+
         if result['Success']:
           print("Import had no errors.")
         else:
           print("Import had errors.")
-
-        for message in result['Messages']:
-          print("%s\t\t - %s" % (message["MessageType"], message["Message"]))
 
 
     finally:

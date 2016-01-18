@@ -83,7 +83,7 @@ def main():
                 { # <Cost>
                   'CostYear': 2016,
                   'CostMonth': 1,
-                  'Mode': 'TOTAL',
+                  'Mode': 'INCREMENTAL', # or TOTAL
                   'Amounts': [
                     {
                       'Account': '9210.219',
@@ -103,10 +103,10 @@ def main():
         for message in result['Messages']:
           print("%s\t\t - %s" % (message["MessageType"], message["Message"]))
 
-        if result['Success']:
-          print("Import had no errors.")
-        else:
+        if result['HasErrors']:
           print("Import had errors.")
+        else:
+          print("Import had no errors.")
 
 
     finally:

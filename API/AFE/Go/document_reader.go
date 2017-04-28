@@ -140,7 +140,27 @@ type AfeNavError struct {
 
 type DocumentHandle string
 
-func (service *AfeNavService) call(api string, request []byte) (io.ReadCloser, error) {
+func (service *AfeNavService) invokeJson(api string, request interface{}, response interface{}) error {
+  requestJson, _ := json.Marshal(request)
+
+  responseReader, err := service.invoke(api, requestJson)
+  if err != nil {
+    return err
+  }
+  defer responseReader.Close()
+
+  if response != nil {
+    decoder := json.NewDecoder(responseReader)
+    err = decoder.Decode(response)
+    if err != nil {
+      return err
+    }
+  }
+
+  return nil
+}
+
+func (service *AfeNavService) invoke(api string, request []byte) (io.ReadCloser, error) {
 
   // TLS configuration to bypass TLS check if we are using a self-signed cert
   tls := &tls.Config{
@@ -179,21 +199,11 @@ func (service *AfeNavService) call(api string, request []byte) (io.ReadCloser, e
 
 // Login opens a session against the AFE Navigator service and stores the authenticationToken
 func (service *AfeNavService) Login() error {
-  request, _ := json.Marshal(LoginRequest{
+  var response LoginResponse
+  if err := service.invokeJson("/api/Authentication/Login", LoginRequest{
     Username: service.Config.Username,
     Password: service.Config.Password,
-  })
-
-  responseReader, err := service.call("/api/Authentication/Login", request)
-  if err != nil {
-    return err
-  }
-  defer responseReader.Close()
-
-  var response LoginResponse
-  decoder := json.NewDecoder(responseReader)
-  err = decoder.Decode(&response)
-  if err != nil {
+  }, &response); err != nil {
     return err
   }
 
@@ -204,22 +214,12 @@ func (service *AfeNavService) Login() error {
 
 // SearchAndOpenReadonly searchs for and opens a readonly handle to a document of a given type
 func (service *AfeNavService) SearchAndOpenReadonly(documentType string, searchString string) (DocumentHandle, error) {
-  request, _ := json.Marshal(SearchAndOpenRequest{
+  var response OpenResponse
+  if err := service.invokeJson("/api/Documents/SearchAndOpenReadonly", SearchAndOpenRequest{
     AuthenticationToken: service.AuthenticationToken,
     DocumentType:        documentType,
     SearchString:        searchString,
-  })
-
-  responseReader, err := service.call("/api/Documents/SearchAndOpenReadonly", request)
-  if err != nil {
-    return "", err
-  }
-  defer responseReader.Close()
-
-  var response OpenResponse
-  decoder := json.NewDecoder(responseReader)
-  err = decoder.Decode(&response)
-  if err != nil {
+  }, &response); err != nil {
     return "", err
   }
 
@@ -228,22 +228,12 @@ func (service *AfeNavService) SearchAndOpenReadonly(documentType string, searchS
 
 // SearchAndOpenReadonly searchs for and opens a readonly handle to a document of a given type
 func (service *AfeNavService) ReadDocument(handle DocumentHandle, serializeDocumentTypes []string) (*DocumentReadResponse, error) {
-  request, _ := json.Marshal(DocumentReadRequest{
+  var response DocumentReadResponse
+  if err := service.invokeJson("/api/Documents/Read", DocumentReadRequest{
     AuthenticationToken:    service.AuthenticationToken,
     DocumentHandle:         string(handle),
     SerializeDocumentTypes: serializeDocumentTypes,
-  })
-
-  responseReader, err := service.call("/api/Documents/Read", request)
-  if err != nil {
-    return nil, err
-  }
-  defer responseReader.Close()
-
-  var response DocumentReadResponse
-  decoder := json.NewDecoder(responseReader)
-  err = decoder.Decode(&response)
-  if err != nil {
+  }, &response); err != nil {
     return nil, err
   }
 
@@ -252,17 +242,12 @@ func (service *AfeNavService) ReadDocument(handle DocumentHandle, serializeDocum
 
 // Close a document handle!
 func (service *AfeNavService) CloseDocument(handle DocumentHandle) error {
-  request, _ := json.Marshal(DocumentHandleRequest{
+  if err := service.invokeJson("/api/Documents/Close", DocumentHandleRequest{
     AuthenticationToken: service.AuthenticationToken,
     DocumentHandle:      string(handle),
-  })
-
-  responseReader, err := service.call("/api/Documents/Close", request)
-  if err != nil {
+  }, nil); err != nil {
     return err
   }
-  responseReader.Close()
-
   return nil
 }
 
@@ -271,12 +256,9 @@ func (service *AfeNavService) Logout() error {
   if service.AuthenticationToken == "" {
     return errors.New("Not logged in")
   }
-  request, _ := json.Marshal(AuthenticationTokenRequest{
+  if err := service.invokeJson("/api/Authentication/Logout", AuthenticationTokenRequest{
     AuthenticationToken: service.AuthenticationToken,
-  })
-
-  _, err := service.call("/api/Authentication/Logout", request)
-  if err != nil {
+  }, nil); err != nil {
     return err
   }
 
@@ -285,6 +267,8 @@ func (service *AfeNavService) Logout() error {
 }
 
 func main() {
+
+  // === HANDLE ARGS =====================
 
   searchString := flag.String("search", "", "search string")
   flag.Parse()
@@ -295,12 +279,16 @@ func main() {
     return
   }
 
+  // === PARSE CONFIGURATION =====================
+
   var config Config
 
   // read configuration
   if _, err := toml.DecodeFile("document_reader.config", &config); err != nil {
     panic(err)
   }
+
+  // === AFE NAV SERVICE =====================
 
   // create instance of the AFE Nav service
   var service AfeNavService

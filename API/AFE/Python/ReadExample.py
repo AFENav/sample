@@ -1,5 +1,5 @@
 # Created using Python 2.7.10
-from urllib2 import Request, urlopen, URLError, HTTPError
+from urllib2 import Request, urlopen, URLError, HTTPError, ssl
 from json import loads, dumps
 import datetime
 import re
@@ -9,7 +9,9 @@ import sys
 # the base_url will be the url to your service machine
 base_url = 'https://server:14101'
 suppress_ssl_check = True
-
+username = 'System Admin'
+password = 'CHANGEME'
+searchstring = '07W089'
 
 def call_api(url, request_data):
     """ Sends our request to the service and returns the data asked for"""
@@ -51,8 +53,8 @@ def main():
         # you will need to change the username and password to suit your environment
         # this may fail if no licenses are available
         result = call_api('/api/Authentication/Login', {
-          'UserName': 'CHANGEME',
-          'Password': 'CHANGEME'
+          'UserName': username,
+          'Password': password
         })
 
         # once logged in, we get an authentication token back from the service.
@@ -67,7 +69,7 @@ def main():
           result = call_api('/api/Documents/SearchAndOpenReadonly', {
             'AuthenticationToken': auth_token,
             'DocumentType': 'AFE',
-            'SearchString': '15W0002'
+            'SearchString': searchstring
           })
 
           doc_handle = result["DocumentHandle"]
@@ -79,10 +81,8 @@ def main():
           result = call_api('/api/Documents/Read', {
             'AuthenticationToken': auth_token,
             'DocumentHandle': doc_handle,
-            'SerializeDocumentTypes': ['AFE','PARTNER','USER', 'AFENUMBER']
+            'SerializeDocumentTypes': ['AFE','PARTNER','USER','AFENUMBER']
           })
-
-
 
           fields = {}
 
@@ -93,10 +93,6 @@ def main():
           # pull custom fields into a dictionary for convenience
           for field in fields["CUSTOM"]["Record"]["Fields"]:
             fields["CUSTOM/" + field["Id"]] = field
-
-          # pull primary_attributes fields into a dictionary for convenience
-          for field in fields["PRIMARY_ATTRIBUTES"]["Record"]["Fields"]:
-            fields["PRIMARY_ATTRIBUTES/" + field["Id"]] = field
 
           # retrieve AFE Number, if any, from child AFE Number document
           afenumber = ''
@@ -113,7 +109,7 @@ def main():
           print("AFE Description = " + fields["DESCRIPTION"]["Text"])
           print("AFE Version = " + fields["VERSION_STRING"]["Text"])
           print("AFE Status = " + fields["STATUS"]["Text"])
-          print("AFE Type = " + fields["PRIMARY_ATTRIBUTES/ATTRIBUTE1_VALUE"]["Text"])
+          print("AFE Type = " + fields["CUSTOM/AFE_TYPE"]["DocumentDescriptor"])
           print("Total Approved Estimate = " + str(fields["APPROVED_GROSS_ESTIMATE"]["NumberDecimal"]))
           print("Total Estimate = " + str(fields["TOTAL_GROSS_ESTIMATE"]["NumberDecimal"]))
 
@@ -133,8 +129,6 @@ def main():
             for amount in lineitem['Amounts']:
               total_amount += amount['Gross']
             print ('%s\t%0.2f\t%0.2f' % (accountNumber, current_amount, total_amount))
-
-
 
         finally:
           if auth_token != '':

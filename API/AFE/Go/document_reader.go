@@ -69,12 +69,15 @@ type DocumentReadRequest struct {
   SerializeDocumentTypes []string
 }
 
+// UwiValue is a struct that stores the UWI display value, type and sorted representation
+// as returned by the AFE Nav service
 type UwiValue struct {
   Value     string
   SortedUwi string
   UwiType   string
 }
 
+// DocumentId represents the unique ID for a document (a GUID)
 type DocumentId string
 
 type DocumentField struct {
@@ -99,6 +102,7 @@ type DocumentRecord struct {
   Fields []DocumentField
 }
 
+// Field returns the field of the given ID from the record
 func (record DocumentRecord) Field(id string) (*DocumentField, error) {
   for _, f := range record.Fields {
     if f.Id == id {
@@ -114,6 +118,7 @@ type DocumentData struct {
   Record       DocumentRecord
 }
 
+// Field returns the top-level filed of the given ID
 func (doc DocumentData) Field(id string) (*DocumentField, error) {
   return doc.Record.Field(id)
 }
@@ -123,6 +128,7 @@ type DocumentReadResponse struct {
   ChildDocuments []DocumentData
 }
 
+// ChildDocument finds a child document record by its DocumentID
 func (r DocumentReadResponse) ChildDocument(id DocumentId) (*DocumentData, error) {
   for _, d := range r.ChildDocuments {
     if d.DocumentId == id {
@@ -138,10 +144,16 @@ type AfeNavError struct {
   Message   string
 }
 
+// DocumentHandle represents an open handle to a document in AFE Nav
 type DocumentHandle string
 
+// invokeJson calls an JSON API marshalling the request object, and unmarshalling into the response object
+// response will be nil of error != nil
 func (service *AfeNavService) invokeJson(api string, request interface{}, response interface{}) error {
-  requestJson, _ := json.Marshal(request)
+  requestJson, err := json.Marshal(request)
+  if err != nil {
+    return err
+  }
 
   responseReader, err := service.invoke(api, requestJson)
   if err != nil {
@@ -176,6 +188,8 @@ func (service *AfeNavService) invoke(api string, request []byte) (io.ReadCloser,
   client := &http.Client{Transport: tr}
 
   req, _ := http.NewRequest("POST", service.Config.Url+api, bytes.NewReader(request))
+
+  // indicate to AFE Nav service that we're calling the JSON APIs (as opposed to XML)
   req.Header.Add("Content-type", "application/json")
 
   resp, err := client.Do(req)

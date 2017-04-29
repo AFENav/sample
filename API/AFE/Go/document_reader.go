@@ -296,8 +296,6 @@ func main() {
   // === PARSE CONFIGURATION =====================
 
   var config Config
-
-  // read configuration
   if _, err := toml.DecodeFile("document_reader.config", &config); err != nil {
     panic(err)
   }

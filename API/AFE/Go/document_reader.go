@@ -13,11 +13,12 @@ import (
   "crypto/tls"
   "encoding/json"
   "errors"
-  "flag"
   "fmt"
   "github.com/BurntSushi/toml"
   "io"
   "net/http"
+  "os"
+  "strings"
   "time"
 )
 
@@ -284,12 +285,11 @@ func main() {
 
   // === HANDLE ARGS =====================
 
-  searchString := flag.String("search", "", "search string")
-  flag.Parse()
+  searchString := strings.Join(os.Args[1:], " ")
 
   // print usage if search string not provided
-  if *searchString == "" {
-    flag.Usage()
+  if searchString == "" {
+    fmt.Printf("usage: %s <searchString>\n", os.Args[0])
     return
   }
 
@@ -315,7 +315,7 @@ func main() {
   defer service.Logout()
 
   // open document handle for AFE
-  handle, err := service.SearchAndOpenReadonly("AFE", *searchString)
+  handle, err := service.SearchAndOpenReadonly("AFE", searchString)
   if err != nil {
     panic(err)
   }
